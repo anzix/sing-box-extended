@@ -47,22 +47,27 @@ func (h *Provider) UnmarshalJSONContext(ctx context.Context, content []byte) err
 }
 
 type ProviderLocalOptions struct {
-	Path         string                     `json:"path"`
-	RemoveEmojis bool                       `json:"remove_emojis,omitempty"`
-	HealthCheck  ProviderHealthCheckOptions `json:"health_check,omitempty"`
+	Path           string                     `json:"path"`
+	RemoveEmojis   bool                       `json:"remove_emojis,omitempty"`
+	HealthCheck    ProviderHealthCheckOptions `json:"health_check,omitempty"`
+
+	OverrideDialer *OverrideDialerOptions     `json:"override_dialer,omitempty"`
 }
 
 type ProviderRemoteOptions struct {
 	URL            string             `json:"url"`
+	Path           string             `json:"path,omitempty"`
 	UserAgent      string             `json:"user_agent,omitempty"`
 	Headers        badoption.HTTPHeader   `json:"headers,omitempty"`
 	DownloadDetour string             `json:"download_detour,omitempty"`
 	UpdateInterval badoption.Duration `json:"update_interval,omitempty"`
 
-	Exclude      *badoption.Regexp          `json:"exclude,omitempty"`
-	Include      *badoption.Regexp          `json:"include,omitempty"`
-	RemoveEmojis bool                       `json:"remove_emojis,omitempty"`
-	HealthCheck  ProviderHealthCheckOptions `json:"health_check,omitempty"`
+	Exclude        *badoption.Regexp          `json:"exclude,omitempty"`
+	Include        *badoption.Regexp          `json:"include,omitempty"`
+	RemoveEmojis   bool                       `json:"remove_emojis,omitempty"`
+	HealthCheck    ProviderHealthCheckOptions `json:"health_check,omitempty"`
+
+	OverrideDialer *OverrideDialerOptions     `json:"override_dialer,omitempty"`
 }
 
 type ProviderInlineOptions struct {
@@ -70,6 +75,28 @@ type ProviderInlineOptions struct {
 	Endpoints    []Endpoint                 `json:"endpoints,omitempty"`
 	RemoveEmojis bool                       `json:"remove_emojis,omitempty"`
 	HealthCheck  ProviderHealthCheckOptions `json:"health_check,omitempty"`
+}
+
+type OverrideDialerOptions struct {
+	Detour              *string                            `json:"detour,omitempty"`
+	BindInterface       *string                            `json:"bind_interface,omitempty"`
+	Inet4BindAddress    *badoption.Addr                    `json:"inet4_bind_address,omitempty"`
+	Inet6BindAddress    *badoption.Addr                    `json:"inet6_bind_address,omitempty"`
+	ProtectPath         *string                            `json:"protect_path,omitempty"`
+	RoutingMark         *FwMark                            `json:"routing_mark,omitempty"`
+	ReuseAddr           *bool                              `json:"reuse_addr,omitempty"`
+	ConnectTimeout      *badoption.Duration                `json:"connect_timeout,omitempty"`
+	TCPFastOpen         *bool                              `json:"tcp_fast_open,omitempty"`
+	TCPMultiPath        *bool                              `json:"tcp_multi_path,omitempty"`
+	UDPFragment         *bool                              `json:"udp_fragment,omitempty"`
+	DomainResolver      *DomainResolveOptions              `json:"domain_resolver,omitempty"`
+	NetworkStrategy     *NetworkStrategy                   `json:"network_strategy,omitempty"`
+	NetworkType         *badoption.Listable[InterfaceType] `json:"network_type,omitempty"`
+	FallbackNetworkType *badoption.Listable[InterfaceType] `json:"fallback_network_type,omitempty"`
+	FallbackDelay       *badoption.Duration                `json:"fallback_delay,omitempty"`
+
+	// Deprecated: migrated to domain resolver
+	DomainStrategy *DomainStrategy `json:"domain_strategy,omitempty"`
 }
 
 type ProviderHealthCheckOptions struct {

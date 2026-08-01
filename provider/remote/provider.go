@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -28,7 +29,9 @@ import (
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 	"github.com/sagernet/sing/common/ntp"
+	"github.com/sagernet/sing/common/rw"
 	"github.com/sagernet/sing/service"
+	"github.com/sagernet/sing/service/filemanager"
 )
 
 func RegisterProvider(registry *provider.Registry) {
@@ -61,18 +64,28 @@ type ProviderRemote struct {
 	exclude        *regexp.Regexp
 	include        *regexp.Regexp
 	headers        http.Header
+
+	overrideDialer *option.OverrideDialerOptions
 }
 
 func NewProviderRemote(ctx context.Context, router adapter.Router, logFactory log.Factory, tag string, options option.ProviderRemoteOptions) (adapter.Provider, error) {
 	if options.URL == "" {
 		return nil, E.New("provider URL is required")
 	}
+	var path string
+	if options.Path != "" {
+		path = filemanager.BasePath(ctx, options.Path)
+		path, _ = filepath.Abs(path)
+	}
+	if rw.IsDir(path) {
+		return nil, E.New("provider path is a directory: ", path)
+	}
 	updateInterval := time.Duration(options.UpdateInterval)
 	if updateInterval <= 0 {
 		updateInterval = 24 * time.Hour
 	}
-	if updateInterval < time.Minute {
-		updateInterval = time.Minute
+	if updateInterval < time.Hour {
+		updateInterval = time.Hour
 	}
 	var userAgent string
 	if options.UserAgent == "" {
@@ -101,6 +114,8 @@ func NewProviderRemote(ctx context.Context, router adapter.Router, logFactory lo
 		updateInterval: updateInterval,
 		exclude:        (*regexp.Regexp)(options.Exclude),
 		include:        (*regexp.Regexp)(options.Include),
+
+		overrideDialer: options.OverrideDialer,
 	}
 	p.SetRemoveEmojis(options.RemoveEmojis)
 	return p, nil
@@ -298,7 +313,7 @@ func (s *ProviderRemote) loopUpdate() {
 }
 
 func (s *ProviderRemote) updateProviderFromContent(content string) error {
-	outboundOpts, endpointOpts, err := parser.ParseSubscription(s.ctx, content)
+	outboundOpts, endpointOpts, err := parser.ParseSubscription(s.ctx, content, s.overrideDialer)
 	if err != nil {
 		return err
 	}
