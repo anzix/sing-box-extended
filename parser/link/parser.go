@@ -30,6 +30,8 @@ func ParseSubscriptionLink(link string) (option.Outbound, error) {
 		return parseHysteria2Link(link)
 	case "anytls":
 		return parseAnyTLSLink(link)
+	case "naive", "naive+https":
+		return parseNaiveLink(link)
 	}
 	result[3], _ = common.DecodeBase64URLSafe(result[3])
 	link = strings.Join(result[1:], "")
