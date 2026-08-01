@@ -12,11 +12,19 @@ import (
 )
 
 func parseNaiveLink(link string) (option.Outbound, error) {
+	var forceQUIC bool
+
 	switch {
 	case strings.HasPrefix(link, "naive+https://"):
 		link = "https://" + strings.TrimPrefix(link, "naive+https://")
+
+	case strings.HasPrefix(link, "naive+quic://"):
+		link = "https://" + strings.TrimPrefix(link, "naive+quic://")
+		forceQUIC = true
+
 	case strings.HasPrefix(link, "naive://"):
 		link = "https://" + strings.TrimPrefix(link, "naive://")
+
 	default:
 		return option.Outbound{}, E.New("invalid naive link")
 	}
@@ -60,27 +68,38 @@ func parseNaiveLink(link string) (option.Outbound, error) {
 
 	tlsOptions.ServerName = linkURL.Hostname()
 
+	if forceQUIC {
+		options.QUIC = true
+	}
+
 	for key, values := range linkURL.Query() {
 		if len(values) == 0 {
 			continue
 		}
-
 		value := values[0]
-
 		switch key {
 		case "sni":
 			tlsOptions.ServerName = value
-
-		case "insecure":
-			if value == "1" || value == "true" {
+		case "insecure", "allowInsecure":
+			if value == "1" || strings.EqualFold(value, "true") {
 				tlsOptions.Insecure = true
 			}
-
-		case "alpn":
-			tlsOptions.ALPN = strings.Split(value, ",")
-
+		case "tls_certificate":
+			tlsOptions.Certificate = []string{
+				strings.ReplaceAll(value, ",", "\n"),
+			}
 		case "concurrency":
 			options.InsecureConcurrency = common.StringToType[int](value)
+		case "uot":
+			if value == "1" || strings.EqualFold(value, "true") {
+				options.UDPOverTCP = &option.UDPOverTCPOptions{}
+			}
+		case "quic":
+			if value == "1" || strings.EqualFold(value, "true") {
+				options.QUIC = true
+			}
+		case "quic_congestion_control":
+			options.QUICCongestionControl = value
 		}
 	}
 
